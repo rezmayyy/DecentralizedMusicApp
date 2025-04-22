@@ -29,6 +29,11 @@ contract MyTunes {
     // address => earnings
     mapping(address => uint) public balances;
 
+    // address => songs
+    mapping(address => uint[]) public purchasesBy;
+
+    event SongPurchasedBy(uint indexed songId, address indexed buyer);
+
     // Upload Song
     function uploadSong(
         string memory _title,
@@ -65,6 +70,8 @@ contract MyTunes {
         require(!hasPurchased[msg.sender][_songId], "Already purchased");
 
         hasPurchased[msg.sender][_songId] = true;
+        purchasesBy[msg.sender].push(_songId);
+        emit SongPurchasedBy(_songId, msg.sender);
 
         uint remaining = msg.value;
 

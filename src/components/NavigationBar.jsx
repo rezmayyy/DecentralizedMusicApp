@@ -15,6 +15,7 @@ function NavigationBar() {
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/test">Test</Nav.Link>
                         <Nav.Link as={Link} to="/artistdashboard">Artist Dashboard</Nav.Link>
+                        <Nav.Link as={Link} to="/buyerdashboard">Buyer Dashboard</Nav.Link>
                     </Nav>
                     <Navbar.Text className="text-white">
                         {account ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}` : "Not Connected"}
