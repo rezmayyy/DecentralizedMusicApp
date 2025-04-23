@@ -1,64 +1,67 @@
-import React, { useState, useContext } from 'react';
-import { Web3Context } from '../components/Web3Context.js';
+import React, { useState, useEffect, useContext } from 'react';
+import { Button, Table } from 'react-bootstrap';
+import { Web3Context } from '../components/Web3Context'; 
 
 function TestPage() {
-    const { contract, account, web3 } = useContext(Web3Context);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const { contract, web3 } = useContext(Web3Context);
+    const [songs, setSongs] = useState([]);
+    const [nextSongId, setNextSongId] = useState(1);
 
-    const handleUpload = async () => {
-        setError(null);
-
-        if (!contract || !account || !web3) {
-            setError("Web3, account, or contract not loaded.");
-            return;
-        }
-
-        const title = "Test Song";
-        const priceInWei = web3.utils.toWei("0.01", "ether");
-        const ipfsHash = "QmTestHash123456"; // dummy IPFS hash
-        const contributors = [account]; // testing with self
-        const splits = [100]; // 100% to self
-
-        console.log("Uploading with:", { title, priceInWei, ipfsHash, contributors, splits });
+    // Fetch all songs
+    const fetchAllSongs = async () => {
+        if (!contract) return;
 
         try {
-            setLoading(true);
+            const latestSongId = await contract.methods.nextSongId().call();
+            setNextSongId(latestSongId);
 
-            const methodCall = contract.methods.uploadSong(title, priceInWei, ipfsHash, contributors, splits);
-            console.log("Method encoded:", methodCall.encodeABI());
-
-            await methodCall.send({ from: account })
-                .on("transactionHash", (hash) => {
-                    console.log("Transaction Hash:", hash);
-                })
-                .on("receipt", (receipt) => {
-                    console.log("Transaction Receipt:", receipt);
-                })
-                .on("error", (err) => {
-                    console.error("Transaction Error:", err);
-                    setError("Transaction failed: " + err.message);
+            const allSongs = [];
+            for (let i = 1; i < latestSongId; i++) {
+                const song = await contract.methods.getSongDetails(i).call();
+                allSongs.push({
+                    id: i,
+                    title: song[0],
+                    price: web3.utils.fromWei(song[1], 'ether'),
+                    contributors: song[4].join(', '),
+                    splits: song[5].join(', ')
                 });
-        } catch (err) {
-            console.error("Upload failed:", err);
-            setError("Upload failed: " + err.message);
-        } finally {
-            setLoading(false);
+            }
+            setSongs(allSongs);
+        } catch (error) {
+            console.error('Error fetching songs:', error);
         }
     };
 
-    return (
-        <div style={{ padding: 20 }}>
-            <h2>Smart Contract Test</h2>
-            <button onClick={handleUpload} disabled={loading}>
-                {loading ? "Uploading..." : "Upload Test Song"}
-            </button>
+    useEffect(() => {
+        fetchAllSongs();
+    }, [contract]);
 
-            {error && (
-                <div style={{ marginTop: 20, color: 'red' }}>
-                    <strong>Error:</strong> {error}
-                </div>
-            )}
+    return (
+        <div>
+            <h2>All Songs on Blockchain</h2>
+            <Table striped bordered hover>
+                <thead>
+                    <tr>
+                        <th>Song ID</th>
+                        <th>Title</th>
+                        <th>Price (ETH)</th>
+                        <th>Contributors</th>
+                        <th>Splits (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {songs.map((song, index) => (
+                        <tr key={index}>
+                            <td>{song.id}</td>
+                            <td>{song.title}</td>
+                            <td>{song.price}</td>
+                            <td>{song.contributors}</td>
+                            <td>{song.splits}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
+            <Button onClick={fetchAllSongs}>Refresh Songs</Button>
         </div>
     );
 }

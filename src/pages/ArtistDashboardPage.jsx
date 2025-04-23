@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Form, Button, Table, Container, Row, Col } from 'react-bootstrap';
+import { Web3Context } from '../components/Web3Context';
+
 
 function ArtistDashboardPage() {
+    const { web3, account, contract } = useContext(Web3Context);
+
     const [title, setTitle] = useState('');
     const [price, setPrice] = useState('');
     const [contributor, setContributor] = useState('');
@@ -22,15 +26,36 @@ function ArtistDashboardPage() {
         setContributors(updated);
     };
 
-    const handleUpload = () => {
-        // You’ll later use this data to call contract.uploadSong(...)
-        const contributorAddresses = contributors.map(c => c.address);
-        const contributorSplits = contributors.map(c => c.split);
+    const handleUpload = async () => {
+        if (!contract || !account || !web3) {
+            alert("Web3 is not connected.");
+            return;
+        }
 
-        console.log("Title:", title);
-        console.log("Price:", price);
-        console.log("Contributors:", contributorAddresses);
-        console.log("Splits:", contributorSplits);
+        try {
+            const contributorAddresses = contributors.map(c => c.address);
+            const contributorSplits = contributors.map(c => c.split);
+            const ipfsHash = "QmDummyHash123..."; // replace this with actual IPFS logic later
+
+            const priceInWei = web3.utils.toWei(price, 'ether');
+
+            await contract.methods.uploadSong(
+                title,
+                priceInWei,
+                ipfsHash,
+                contributorAddresses,
+                contributorSplits
+            ).send({ from: account });
+
+            alert("Song uploaded successfully!");
+            // Reset form
+            setTitle('');
+            setPrice('');
+            setContributors([]);
+        } catch (error) {
+            console.error("Upload failed:", error);
+            alert("Upload failed. See console for details.");
+        }
     };
 
     return (
