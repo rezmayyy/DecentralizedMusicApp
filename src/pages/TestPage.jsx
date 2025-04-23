@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Button, Table } from 'react-bootstrap';
-import { Web3Context } from '../components/Web3Context'; 
+import { Web3Context } from '../components/Web3Context';
 
 function TestPage() {
     const { contract, web3 } = useContext(Web3Context);
@@ -9,7 +9,7 @@ function TestPage() {
 
     // Fetch all songs
     const fetchAllSongs = async () => {
-        if (!contract) return;
+        if (!contract || !web3) return;
 
         try {
             const latestSongId = await contract.methods.nextSongId().call();
@@ -22,6 +22,7 @@ function TestPage() {
                     id: i,
                     title: song[0],
                     price: web3.utils.fromWei(song[1], 'ether'),
+                    artist: song[3],
                     contributors: song[4].join(', '),
                     splits: song[5].join(', ')
                 });
@@ -45,8 +46,11 @@ function TestPage() {
                         <th>Song ID</th>
                         <th>Title</th>
                         <th>Price (ETH)</th>
+                        <th>Artist</th>
                         <th>Contributors</th>
                         <th>Splits (%)</th>
+                        <th>Action</th> {/* New column */}
+
                     </tr>
                 </thead>
                 <tbody>
@@ -55,11 +59,18 @@ function TestPage() {
                             <td>{song.id}</td>
                             <td>{song.title}</td>
                             <td>{song.price}</td>
+                            <td>{song.artist}</td>
                             <td>{song.contributors}</td>
                             <td>{song.splits}</td>
+                            <td>
+                                <Button variant="secondary" disabled>
+                                    Buy Song (NonFunctional)
+                                </Button>
+                            </td>
                         </tr>
                     ))}
                 </tbody>
+
             </Table>
             <Button onClick={fetchAllSongs}>Refresh Songs</Button>
         </div>

@@ -1,7 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Form, Button, Table, Container, Row, Col } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
-
 
 function ArtistDashboardPage() {
     const { web3, account, contract } = useContext(Web3Context);
@@ -11,7 +10,21 @@ function ArtistDashboardPage() {
     const [contributor, setContributor] = useState('');
     const [split, setSplit] = useState('');
     const [contributors, setContributors] = useState([]);
+    const [balance, setBalance] = useState(0);
 
+    // Fetch artist balance
+    const fetchBalance = async () => {
+        if (contract && account) {
+            try {
+                const artistBalance = await contract.methods.balances(account).call();
+                setBalance(web3.utils.fromWei(artistBalance, 'ether'));  // Convert from Wei to Ether
+            } catch (error) {
+                console.error('Error fetching balance:', error);
+            }
+        }
+    };
+
+    // Add contributor to the song revenue split
     const handleAddContributor = () => {
         if (!contributor || !split) return;
 
@@ -20,12 +33,14 @@ function ArtistDashboardPage() {
         setSplit('');
     };
 
+    // Remove a contributor from the list
     const handleRemoveContributor = (index) => {
         const updated = [...contributors];
         updated.splice(index, 1);
         setContributors(updated);
     };
 
+    // Upload song and submit to the blockchain
     const handleUpload = async () => {
         if (!contract || !account || !web3) {
             alert("Web3 is not connected.");
@@ -35,7 +50,7 @@ function ArtistDashboardPage() {
         try {
             const contributorAddresses = contributors.map(c => c.address);
             const contributorSplits = contributors.map(c => c.split);
-            const ipfsHash = "QmDummyHash123..."; // replace this with actual IPFS logic later
+            const ipfsHash = "QmDummyHash123..."; // Replace this with actual IPFS logic later
 
             const priceInWei = web3.utils.toWei(price, 'ether');
 
@@ -48,7 +63,6 @@ function ArtistDashboardPage() {
             ).send({ from: account });
 
             alert("Song uploaded successfully!");
-            // Reset form
             setTitle('');
             setPrice('');
             setContributors([]);
@@ -57,6 +71,28 @@ function ArtistDashboardPage() {
             alert("Upload failed. See console for details.");
         }
     };
+
+    // Handle withdraw action
+    const handleWithdraw = async () => {
+        if (!contract || !account) {
+            alert("Web3 is not connected.");
+            return;
+        }
+
+        try {
+            await contract.methods.withdrawFunds().send({ from: account });
+            alert('Withdrawal successful');
+            fetchBalance();  // Update balance after withdrawal
+        } catch (error) {
+            console.error('Error withdrawing funds:', error);
+            alert('Failed to withdraw funds');
+        }
+    };
+
+    // Fetch the balance when the component is loaded
+    useEffect(() => {
+        fetchBalance();
+    }, [contract, account]);
 
     return (
         <Container>
@@ -137,25 +173,11 @@ function ArtistDashboardPage() {
                 </Table>
             </section>
 
-            {/* Earnings Section (Placeholder) */}
+            {/* Earnings Section */}
             <section className="mt-5">
-                <h2>Earnings & History</h2>
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Song</th>
-                            <th>Earnings (ETH)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>2025-04-08</td>
-                            <td>My Song</td>
-                            <td>0.05</td>
-                        </tr>
-                    </tbody>
-                </Table>
+                <h2>Earnings</h2>
+                <p>Current Balance: {balance} ETH</p>
+                <Button variant="success" onClick={handleWithdraw}>Withdraw Funds</Button>
             </section>
         </Container>
     );
