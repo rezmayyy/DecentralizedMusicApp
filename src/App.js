@@ -4,7 +4,6 @@ import Web3Provider from './components/Web3Context.js';
 import HomePage from "./pages/HomePage.jsx";
 import TestPage from './pages/TestPage.jsx';
 import ArtistDashboardPage from './pages/ArtistDashboardPage.jsx';
-import TestPage from './pages/TestPage.jsx';
 import BuyerDashboardPage from './pages/BuyerDashboardPage.jsx';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
