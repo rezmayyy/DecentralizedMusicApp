@@ -1,23 +1,31 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Form, Button, Table, Container, Row, Col } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
+import { create } from 'ipfs-http-client';
 
 function ArtistDashboardPage() {
     const { web3, account, contract } = useContext(Web3Context);
 
+    // State variables
     const [title, setTitle] = useState('');
     const [price, setPrice] = useState('');
     const [contributor, setContributor] = useState('');
     const [split, setSplit] = useState('');
     const [contributors, setContributors] = useState([]);
     const [balance, setBalance] = useState(0);
+    const [songFile, setSongFile] = useState(null);
+    const [ipfsCID, setIpfsCID] = useState('');
+    const [uploadingToIPFS, setUploadingToIPFS] = useState(false);
+
+    // Initialize IPFS client
+    const ipfs = create({ host: 'localhost', port: '5001', protocol: 'http' });
 
     // Fetch artist balance
     const fetchBalance = async () => {
         if (contract && account) {
             try {
                 const artistBalance = await contract.methods.balances(account).call();
-                setBalance(web3.utils.fromWei(artistBalance, 'ether'));  // Convert from Wei to Ether
+                setBalance(web3.utils.fromWei(artistBalance, 'ether')); // Convert from Wei to Ether
             } catch (error) {
                 console.error('Error fetching balance:', error);
             }
@@ -40,7 +48,37 @@ function ArtistDashboardPage() {
         setContributors(updated);
     };
 
-    // Upload song and submit to the blockchain
+    // Upload song to IPFS
+    const uploadSongToIPFS = async () => {
+        if (!songFile) {
+            alert("Please select a song file first!");
+            return;
+        }
+    
+        const ipfs = create({ host: '127.0.0.1', port: '5001', protocol: 'http' }); // Connect to local IPFS daemon
+    
+        try {
+            console.log("Uploading file to IPFS:", songFile.name);
+            const addedFile = await ipfs.add(songFile);
+            setIpfsCID(addedFile.path); // Store the CID from IPFS
+            alert(`Song uploaded successfully to IPFS! CID: ${addedFile.path}`);
+            console.log("File uploaded to IPFS. CID:", addedFile.path);
+        } catch (error) {
+            console.error("Error uploading file to IPFS:", error);
+            alert("Failed to upload song to IPFS.");
+        }
+    };
+    
+
+    // Handle song file change
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            setSongFile(file);
+        }
+    };
+
+    // Upload song to the blockchain
     const handleUpload = async () => {
         if (!contract || !account || !web3) {
             alert("Web3 is not connected.");
@@ -50,22 +88,28 @@ function ArtistDashboardPage() {
         try {
             const contributorAddresses = contributors.map(c => c.address);
             const contributorSplits = contributors.map(c => c.split);
-            const ipfsHash = "QmDummyHash123..."; // Replace this with actual IPFS logic later
+
+            if (!ipfsCID) {
+                alert("Song must be uploaded to IPFS first!");
+                return;
+            }
 
             const priceInWei = web3.utils.toWei(price, 'ether');
 
             await contract.methods.uploadSong(
                 title,
                 priceInWei,
-                ipfsHash,
+                ipfsCID, // Use the CID from IPFS
                 contributorAddresses,
                 contributorSplits
             ).send({ from: account });
 
-            alert("Song uploaded successfully!");
+            alert("Song uploaded successfully to the blockchain!");
             setTitle('');
             setPrice('');
             setContributors([]);
+            setIpfsCID('');
+            setSongFile(null);
         } catch (error) {
             console.error("Upload failed:", error);
             alert("Upload failed. See console for details.");
@@ -82,7 +126,7 @@ function ArtistDashboardPage() {
         try {
             await contract.methods.withdrawFunds().send({ from: account });
             alert('Withdrawal successful');
-            fetchBalance();  // Update balance after withdrawal
+            fetchBalance(); // Update balance after withdrawal
         } catch (error) {
             console.error('Error withdrawing funds:', error);
             alert('Failed to withdraw funds');
@@ -118,10 +162,22 @@ function ArtistDashboardPage() {
                             onChange={(e) => setPrice(e.target.value)}
                         />
                     </Form.Group>
-                    <Button variant="primary" className="mt-3" onClick={handleUpload}>
-                        Upload Song
+                    <Form.Group controlId="songFile">
+                        <Form.Label>Upload Song</Form.Label>
+                        <Form.Control
+                            type="file"
+                            onChange={handleFileChange}
+                        />
+                    </Form.Group>
+                    <Button variant="secondary" className="mt-3" onClick={uploadSongToIPFS}>
+                        Upload Song to IPFS
                     </Button>
+                    {uploadingToIPFS && <p>Uploading file to IPFS...</p>}
+                    {ipfsCID && <p>File successfully uploaded to IPFS! CID: {ipfsCID}</p>}
                 </Form>
+                <Button variant="primary" className="mt-3" onClick={handleUpload}>
+                    Upload Song to Blockchain
+                </Button>
             </section>
 
             {/* Revenue Splits Section */}
