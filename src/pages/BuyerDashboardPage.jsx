@@ -35,11 +35,11 @@ function BuyerDashboardPage() {
 
       const historyData = await Promise.all(events.map(async (evt) => {
         const songId = evt.returnValues.songId;
-        const block  = await web3.eth.getBlock(evt.blockNumber);
-        const s      = await contract.methods.getSongDetails(songId).call();
+        const block = await web3.eth.getBlock(evt.blockNumber);
+        const s = await contract.methods.getSongDetails(songId).call();
         return {
-          date:   new Date(block.timestamp * 1000).toLocaleDateString(),
-          title:  s.title,
+          date: new Date(block.timestamp * 1000).toLocaleDateString(),
+          title: s.title,
           amount: Web3.utils.fromWei(s.price, 'ether')
         };
       }));
@@ -49,7 +49,7 @@ function BuyerDashboardPage() {
       const bal = await contract.methods.balances(account).call();
       setEarnings(Web3.utils.fromWei(bal, 'ether'));
     };
-
+    
     loadData();
   }, [contract, account, web3]);
 
@@ -134,7 +134,7 @@ function BuyerDashboardPage() {
       </section>
 
       <section className="mt-5">
-        <h2>Your Earnings</h2>
+        <h2>Your Earnings*</h2>
         <p>
           Pending balance: <b>{earnings} ETH</b>{' '}
           {parseFloat(earnings) > 0 && (
@@ -143,6 +143,7 @@ function BuyerDashboardPage() {
             </Button>
           )}
         </p>
+        <small className="text-muted">*Producers only</small>
       </section>
     </Container>
   );
