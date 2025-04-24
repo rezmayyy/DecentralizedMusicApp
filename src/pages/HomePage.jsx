@@ -1,48 +1,79 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Container, Table, Button, Badge } from 'react-bootstrap';
+import { Container, Table, Button, Badge, Spinner, Alert } from 'react-bootstrap';
 import Web3 from 'web3';
 import { Web3Context } from '../components/Web3Context';
 import { useNavigate } from 'react-router-dom';
 
 function HomePage() {
-  const { contract, account, web3, blockNumber } = useContext(Web3Context);
+  const { contract, account, web3, error } = useContext(Web3Context);
   const [songs, setSongs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = async () => {
-      if (!contract) return;
-      const nextId = await contract.methods.nextSongId().call();
-      const list = [];
-      for (let i = 1; i < nextId; i++) {
-        const base = await contract.methods.songs(i).call();
-        if (!base.ipfsHash) continue;
-        const [ title, priceWei, ipfsHash, artist, contributors, splits ] =
-          await contract.methods.getSongDetails(i).call();
-        const bought = account ? await contract.methods.verifyPurchase(i, account).call() : false;
+    if (!contract) return;
+    const loadSongs = async () => {
+      setLoading(true);
+      try {
+        const nextId = await contract.methods.nextSongId().call();
+        const list = [];
+        for (let i = 1; i < nextId; i++) {
+          // retrieve song struct directly as an object
+          const details = await contract.methods.getSongDetails(i).call();
+          if (!details.ipfsHash) continue;
+          const bought = account
+            ? await contract.methods.verifyPurchase(i, account).call()
+            : false;
 
-        list.push({
-          id: i,
-          title,
-          priceWei,
-          priceEth: Web3.utils.fromWei(priceWei, 'ether'),
-          ipfsHash,
-          artist,
-          contributors,
-          splits,
-          bought
-        });
+          list.push({
+            id: i,
+            title: details.title,
+            priceWei: details.price,
+            priceEth: Web3.utils.fromWei(details.price, 'ether'),
+            ipfsHash: details.ipfsHash,
+            artist: details.artist,
+            contributors: details.contributors,
+            splits: details.splits,
+            bought,
+          });
+        }
+        setSongs(list);
+      } catch (err) {
+        console.error('Failed to load songs:', err);
+      } finally {
+        setLoading(false);
       }
-      setSongs(list);
     };
+    loadSongs();
+  }, [contract, account, web3]);
 
-    load();
-  }, [contract, account, web3, blockNumber]);
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
+  }
+  if (!contract || loading) {
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" role="status" />
+        <span className="ms-2">Loading marketplace…</span>
+      </Container>
+    );
+  }
 
-  const handleBuy = async song => {
-    await contract.methods.purchaseSong(song.id)
-      .send({ from: account, value: song.priceWei });
+  const handleBuy = async (song) => {
+    try {
+      const tx = contract.methods.purchaseSong(song.id);
+      const gas = await tx.estimateGas({ from: account, value: song.priceWei });
+      const gasPrice = await web3.eth.getGasPrice();
+      await tx.send({ from: account, value: song.priceWei, gas, gasPrice });
       navigate('/buyerdashboard');
+    } catch (err) {
+      console.error('Purchase failed:', err);
+      alert('Purchase failed.');
+    }
   };
 
   return (
@@ -60,37 +91,48 @@ function HomePage() {
         </thead>
         <tbody>
           {songs.length === 0 && (
-            <tr><td colSpan={5} className="text-center">No songs available.</td></tr>
+            <tr>
+              <td colSpan={5} className="text-center">
+                No songs available.
+              </td>
+            </tr>
           )}
-          {songs.map(s => (
+          {songs.map((s) => (
             <tr key={s.id}>
               <td>{s.title}</td>
               <td>
-                {s.artist.substring(0,6)}…{s.artist.slice(-4)}
+                {s.artist.substring(0, 6)}…{s.artist.slice(-4)}
                 {s.artist.toLowerCase() === account?.toLowerCase() && (
-                  <Badge bg="secondary" className="ms-1">You</Badge>
+                  <Badge bg="secondary" className="ms-1">
+                    You
+                  </Badge>
                 )}
               </td>
               <td>{s.priceEth} ETH</td>
               <td>
-                {s.contributors.length
-                  ? s.contributors.map((c,i) =>
-                      <div key={i}>
-                        {c.substring(0,6)}…{c.slice(-4)} ({s.splits[i]}%)
-                      </div>
-                    )
-                  : <em>—</em>
-                }
+                {s.contributors.length > 0 ? (
+                  s.contributors.map((c, i) => (
+                    <div key={i}>
+                      {c.substring(0, 6)}…{c.slice(-4)} ({s.splits[i]}%)
+                    </div>
+                  ))
+                ) : (
+                  <em>—</em>
+                )}
               </td>
               <td>
-                {s.bought
-                  ? <Button disabled variant="success">
-                      Purchased
-                    </Button>
-                  : <Button onClick={() => handleBuy(s)} disabled={!account}>
-                      Buy
-                    </Button>
-                }
+                {s.bought ? (
+                  <Button disabled variant="success">
+                    Purchased
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleBuy(s)}
+                    disabled={!account}
+                  >
+                    Buy
+                  </Button>
+                )}
               </td>
             </tr>
           ))}
