@@ -18,8 +18,8 @@ export const Web3Provider = ({ children }) => {
                     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                     setAccount(accounts[0]);
 
-		    const contractABI = require('../contracts/MyTunes.json').abi;
-		    const contractAddress = "0x821Ca0C316F7e47982A5B31d5C71eCe2aF13fEde";
+                    const contractABI = require('../contracts/MyTunes.json').abi;
+                    const contractAddress = "0x4DAF4c0b95e84C37EbACa535e7D7b7774FB0D00B";
                     const deployedContract = new web3Instance.eth.Contract(contractABI, contractAddress);
                     setContract(deployedContract);
 

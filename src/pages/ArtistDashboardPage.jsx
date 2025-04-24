@@ -16,6 +16,7 @@ function ArtistDashboardPage() {
     const [songFile, setSongFile] = useState(null);
     const [ipfsCID, setIpfsCID] = useState('');
     const [uploadingToIPFS, setUploadingToIPFS] = useState(false);
+    const [displayName, setDisplayName] = useState(''); // Optional display name
 
     // Initialize IPFS client
     const ipfs = create({ host: 'localhost', port: '5001', protocol: 'http' });
@@ -54,9 +55,9 @@ function ArtistDashboardPage() {
             alert("Please select a song file first!");
             return;
         }
-    
-        const ipfs = create({ host: '127.0.0.1', port: '5001', protocol: 'http' }); // Connect to local IPFS daemon
-    
+
+        setUploadingToIPFS(true);  // Set loading state to true
+
         try {
             console.log("Uploading file to IPFS:", songFile.name);
             const addedFile = await ipfs.add(songFile);
@@ -66,9 +67,10 @@ function ArtistDashboardPage() {
         } catch (error) {
             console.error("Error uploading file to IPFS:", error);
             alert("Failed to upload song to IPFS.");
+        } finally {
+            setUploadingToIPFS(false);  // Set loading state back to false
         }
     };
-    
 
     // Handle song file change
     const handleFileChange = (event) => {
@@ -84,37 +86,47 @@ function ArtistDashboardPage() {
             alert("Web3 is not connected.");
             return;
         }
-
+    
+        if (!ipfsCID) {
+            alert("Song must be uploaded to IPFS first!");
+            return;
+        }
+    
+        // Use title if displayName is empty
+        const finalDisplayName = displayName || 'Anonymous';
+    
+        // Combine title with display name
+        const finalTitle = `${title} - ${finalDisplayName}`;
+    
         try {
             const contributorAddresses = contributors.map(c => c.address);
             const contributorSplits = contributors.map(c => c.split);
-
-            if (!ipfsCID) {
-                alert("Song must be uploaded to IPFS first!");
-                return;
-            }
-
+    
             const priceInWei = web3.utils.toWei(price, 'ether');
-
+    
+            // Upload the song to the blockchain with the combined title
             await contract.methods.uploadSong(
-                title,
+                finalTitle, // Use the combined title
                 priceInWei,
                 ipfsCID, // Use the CID from IPFS
                 contributorAddresses,
-                contributorSplits
+                contributorSplits,
+                finalDisplayName // Include display name (defaults to title if not provided)
             ).send({ from: account });
-
+    
             alert("Song uploaded successfully to the blockchain!");
             setTitle('');
             setPrice('');
             setContributors([]);
             setIpfsCID('');
             setSongFile(null);
+            setDisplayName(''); // Clear the display name field
         } catch (error) {
             console.error("Upload failed:", error);
             alert("Upload failed. See console for details.");
         }
     };
+    
 
     // Handle withdraw action
     const handleWithdraw = async () => {
@@ -162,6 +174,17 @@ function ArtistDashboardPage() {
                             onChange={(e) => setPrice(e.target.value)}
                         />
                     </Form.Group>
+
+                    {/* Optional Display Name */}
+                    <Form.Group controlId="displayName">
+                        <Form.Label>Display Name (Optional)</Form.Label>
+                        <Form.Control
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                        />
+                    </Form.Group>
+
                     <Form.Group controlId="songFile">
                         <Form.Label>Upload Song</Form.Label>
                         <Form.Control

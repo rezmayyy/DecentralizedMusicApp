@@ -35,32 +35,37 @@ contract MyTunes {
     event SongPurchasedBy(uint indexed songId, address indexed buyer);
 
     // Upload Song
-    function uploadSong(
-        string memory _title,
-        uint _price,
-        string memory _ipfsHash,
-        address[] memory _contributors,
-        uint[] memory _splits
-    ) public {
-        require(_contributors.length == _splits.length, "Contributors and splits mismatch");
+    event SongUploaded(uint indexed songId, string ipfsHash, address indexed artist);
 
-        uint totalSplit = 0;
-        for (uint i = 0; i < _splits.length; i++) {
-            totalSplit += _splits[i];
-        }
-        require(totalSplit <= 100, "Total split must be <= 100");
+function uploadSong(
+    string memory _title,
+    uint _price,
+    string memory _ipfsHash,
+    address[] memory _contributors,
+    uint[] memory _splits
+) public {
+    require(_contributors.length == _splits.length, "Contributors and splits mismatch");
 
-        Song storage song = songs[nextSongId];
-        song.id = nextSongId;
-        song.title = _title;
-        song.price = _price;
-        song.ipfsHash = _ipfsHash;
-        song.artist = msg.sender;
-        song.contributors = _contributors;
-        song.splits = _splits;
-
-        nextSongId++;
+    uint totalSplit = 0;
+    for (uint i = 0; i < _splits.length; i++) {
+        totalSplit += _splits[i];
     }
+    require(totalSplit <= 100, "Total split must be <= 100");
+
+    Song storage song = songs[nextSongId];
+    song.id = nextSongId;
+    song.title = _title;
+    song.price = _price;
+    song.ipfsHash = _ipfsHash;
+    song.artist = msg.sender;
+    song.contributors = _contributors;
+    song.splits = _splits;
+
+    emit SongUploaded(nextSongId, _ipfsHash, msg.sender); // Log the song upload
+
+    nextSongId++;
+}
+
 
     // Purchase Song
     function purchaseSong(uint _songId) public payable {
