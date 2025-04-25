@@ -14,7 +14,6 @@ function App() {
         <NavigationBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/test" element={<TestPage />} /> 
 	        <Route path="/artistdashboard" element={<ArtistDashboardPage />} />
           <Route path="/buyerdashboard" element={<BuyerDashboardPage />} />
         </Routes>
