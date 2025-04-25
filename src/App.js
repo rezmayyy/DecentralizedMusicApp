@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage.jsx";
 import TestPage from './pages/TestPage.jsx';
 import ArtistDashboardPage from './pages/ArtistDashboardPage.jsx';
 import BuyerDashboardPage from './pages/BuyerDashboardPage.jsx';
+import SongDetailsPage from "./pages/SongDetailsPage.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -16,6 +17,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
 	        <Route path="/artistdashboard" element={<ArtistDashboardPage />} />
           <Route path="/buyerdashboard" element={<BuyerDashboardPage />} />
+          <Route path="/songs/:id" element={<SongDetailsPage />} /> {/* ✅ this is the one you need */}
+
         </Routes>
       </Router>
     </Web3Provider>
