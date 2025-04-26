@@ -44,7 +44,7 @@ export default function WelcomePage() {
         <Row>
           <Col md={8}>
             <ol>
-              <li>🔑 Connect your wallet (MetaMask or similar)</li>
+              <li>🔑 Connect your wallet (MetaMask)</li>
               <li>📤 Artists upload songs: files → IPFS, metadata → blockchain</li>
               <li>💲 Set a price & define revenue splits for collaborators</li>
               <li>🎧 Buyers browse & purchase tracks securely via Web3</li>
