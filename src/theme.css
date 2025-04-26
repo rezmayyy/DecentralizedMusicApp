@@ -1,0 +1,186 @@
+/* ===================================================================
+   src/theme.css — MyTunes custom theme overrides
+   =================================================================== */
+
+/*────────────────────────────────────────────────────────────────────
+  1. Color & Font Variables
+────────────────────────────────────────────────────────────────────*/
+:root {
+  --bg: #fcf6f0;
+  --surface: #ffffff;
+  --border: #f08a5d;
+  --accent: #d9480f;
+  --text: #333333;
+  --muted: #555555;
+  --success: #38a169;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.1);
+  --font-mono: 'Fira Code', monospace;
+  --font-cursive: 'Pacifico', cursive;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  2. Global Resets
+────────────────────────────────────────────────────────────────────*/
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  opacity: 0.8;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  3. Container Sizing
+────────────────────────────────────────────────────────────────────*/
+.container,
+.welcome-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  4. Logo Styling
+────────────────────────────────────────────────────────────────────*/
+.logo {
+  font-family: var(--font-cursive);
+  font-size: 3rem;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  5. Card Styling
+────────────────────────────────────────────────────────────────────*/
+.app-card {
+  background-color: var(--surface) !important;
+  border: 2px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 32px !important;
+  margin-bottom: 32px !important;
+  box-shadow: var(--shadow) !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+}
+.app-card:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  6. Form/Input Styling
+────────────────────────────────────────────────────────────────────*/
+.form-control,
+.app-input {
+  background-color: #f5f3f0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+}
+.form-control::placeholder,
+.app-input::placeholder {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+.app-input:focus {
+  outline: 2px solid var(--accent) !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  7. Button Styling
+────────────────────────────────────────────────────────────────────*/
+.app-btn {
+  padding: 10px 24px !important;
+  border-radius: var(--radius) !important;
+  font-weight: 600 !important;
+  transition: background 0.2s, transform 0.2s !important;
+}
+.app-btn:hover {
+  transform: translateY(-2px) !important;
+  opacity: 0.9 !important;
+}
+.btn-primary.app-btn,
+.btn-secondary.app-btn {
+  background-color: var(--accent) !important;
+  border: none !important;
+  color: #fff !important;
+}
+.btn-success.app-btn {
+  background-color: var(--success) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  8. Table Styling
+────────────────────────────────────────────────────────────────────*/
+.table th,
+.table td {
+  border-color: var(--border) !important;
+}
+.table thead th {
+  background-color: var(--surface) !important;
+  color: var(--accent) !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+  9. Equalizer Bars Animation
+────────────────────────────────────────────────────────────────────*/
+.eq-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 120px;
+  margin-top: 0.5rem !important;    /* moved up */
+  margin-bottom: 1.5rem !important;
+}
+.bar {
+  width: 12px;
+  background: var(--accent);
+  animation: bounce 0.8s infinite ease-in-out;
+}
+.bar1 { animation-delay: -0.4s; height: 20%; }
+.bar2 { animation-delay: -0.2s; height: 40%; }
+.bar3 { animation-delay: 0s;    height: 60%; }
+.bar4 { animation-delay: -0.2s; height: 40%; }
+.bar5 { animation-delay: -0.4s; height: 20%; }
+@keyframes bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1.0); }
+}
+
+/*────────────────────────────────────────────────────────────────────
+ 10. How It Works Box Adjustments
+────────────────────────────────────────────────────────────────────*/
+.welcome-how {
+  padding: 24px !important;       /* slightly smaller box */
+  margin-bottom: 24px !important;
+}
+.welcome-how h3 {
+  font-size: 2rem !important;     /* bigger heading */
+  margin-bottom: 0.75rem !important;
+}
+.welcome-how ol {
+  font-size: 1.2rem !important;    /* bigger steps text */
+  line-height: 1.6 !important;
+  margin-top: 0.5rem !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+ 11. Responsive Images
+────────────────────────────────────────────────────────────────────*/
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}

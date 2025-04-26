@@ -1,7 +1,9 @@
+// src/pages/BuyerDashboardPage.jsx
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Card, Table, Spinner, Alert } from 'react-bootstrap';
+import { Button, Card, Table, Spinner, Alert, Container } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
 import { useNavigate } from 'react-router-dom';
+import '../theme.css';  // <-- ensure your new theme is loaded
 
 const BuyerDashboardPage = () => {
     const { web3, contract } = useContext(Web3Context);
@@ -73,13 +75,14 @@ const BuyerDashboardPage = () => {
         document.body.removeChild(link);
     };
 
-    if (loading) return <Spinner animation="border" variant="primary" />;
-    if (error) return <Alert variant="danger">{error}</Alert>;
+    if (loading) return <div className="d-flex justify-content-center py-5"><Spinner animation="border" variant="primary" /></div>;
+    if (error) return <Alert variant="danger" className="m-4">{error}</Alert>;
 
     return (
-        <div className="m-4">
-            <h2>Your Purchased Songs</h2>
-            <Table striped bordered hover>
+        <Container className="buyer-dashboard-container">
+            <h2 className="mb-4">Your Purchased Songs</h2>
+
+            <Table striped bordered hover responsive className="app-card">
                 <thead>
                     <tr>
                         <th>Song ID</th>
@@ -99,6 +102,7 @@ const BuyerDashboardPage = () => {
                             <td>
                                 <Button
                                     variant="success"
+                                    className="app-btn"
                                     onClick={() => handleDownload(song.ipfsHash, song.title)}
                                 >
                                     Download Song
@@ -108,10 +112,16 @@ const BuyerDashboardPage = () => {
                     ))}
                 </tbody>
             </Table>
-            <Button variant="link" onClick={() => navigate('/')}>
+
+            <Button
+                variant="link"
+                className="mt-3"
+                onClick={() => navigate('/')}
+                style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}
+            >
                 ← Back to Home
             </Button>
-        </div>
+        </Container>
     );
 };
 

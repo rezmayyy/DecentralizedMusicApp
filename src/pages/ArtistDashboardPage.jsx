@@ -2,264 +2,95 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Form, Button, Table, Container, Row, Col } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
 import { create } from 'ipfs-http-client';
+import '../theme.css';
 
-function ArtistDashboardPage() {
-    const { web3, account, contract } = useContext(Web3Context);
+export default function ArtistDashboardPage(){
+  const { web3, account, contract } = useContext(Web3Context);
+  const [title,setTitle]=useState(''), [price,setPrice]=useState(''),
+        [contributor,setContributor]=useState(''), [split,setSplit]=useState(''),
+        [contributors,setContributors]=useState([]), [balance,setBalance]=useState(0),
+        [songFile,setSongFile]=useState(null), [ipfsCID,setIpfsCID]=useState(''),
+        [uploading,setUploading]=useState(false), [displayName,setDisplayName]=useState('');
+  const ipfs = create({ host:'localhost',port:'5001',protocol:'http' });
+  const fetchBalance = async()=>{
+    const bal = await contract.methods.balances(account).call();
+    setBalance(web3.utils.fromWei(bal,'ether'));
+  };
+  useEffect(()=>{ if(contract&&account) fetchBalance(); },[contract,account]);
 
-    // State variables
-    const [title, setTitle] = useState('');
-    const [price, setPrice] = useState('');
-    const [contributor, setContributor] = useState('');
-    const [split, setSplit] = useState('');
-    const [contributors, setContributors] = useState([]);
-    const [balance, setBalance] = useState(0);
-    const [songFile, setSongFile] = useState(null);
-    const [ipfsCID, setIpfsCID] = useState('');
-    const [uploadingToIPFS, setUploadingToIPFS] = useState(false);
-    const [displayName, setDisplayName] = useState(''); // Optional display name
+  const uploadToIPFS=async()=>{
+    if(!songFile) return alert("Select a song!");
+    setUploading(true);
+    const added = await ipfs.add(songFile);
+    setIpfsCID(added.path);
+    alert(`IPFS CID: ${added.path}`);
+    setUploading(false);
+  };
+  const doUpload=async()=>{
+    if(!ipfsCID) return alert("IPFS first!");
+    const finalTitle=`${title} - ${displayName||'Anonymous'}`;
+    const addrs=contributors.map(c=>c.address), splits=contributors.map(c=>c.split);
+    await contract.methods.uploadSong(finalTitle,web3.utils.toWei(price,'ether'),ipfsCID,addrs,splits).send({ from:account });
+    alert("Uploaded!");
+    setTitle('');setPrice('');setContributors([]);setIpfsCID('');setSongFile(null);setDisplayName('');
+  };
+  const withdraw=async()=>{
+    await contract.methods.withdrawFunds().send({ from:account });
+    fetchBalance();
+    alert("Withdrawn!");
+  };
+  const addSplit=()=>{ if(contributor&&split){ setContributors([...contributors,{address:contributor,split:parseInt(split)}]); setContributor(''); setSplit(''); } };
+  const removeSplit=i=>setContributors(contributors.filter((_,idx)=>idx!==i));
 
-    // Initialize IPFS client
-    const ipfs = create({ host: 'localhost', port: '5001', protocol: 'http' });
+  return (
+    <Container className="artist-dashboard-container">
+      <h2>🎨 Artist Dashboard</h2>
 
-    // Fetch artist balance
-    const fetchBalance = async () => {
-        if (contract && account) {
-            try {
-                const artistBalance = await contract.methods.balances(account).call();
-                setBalance(web3.utils.fromWei(artistBalance, 'ether')); // Convert from Wei to Ether
-            } catch (error) {
-                console.error('Error fetching balance:', error);
-            }
-        }
-    };
+      <div className="app-card">
+        <h3>Upload Your Music</h3>
+        <Form>
+          <Form.Control className="app-input" placeholder="Song Title" value={title} onChange={e=>setTitle(e.target.value)}/>
+          <Form.Control className="app-input" placeholder="Price (ETH)" type="number" value={price} onChange={e=>setPrice(e.target.value)}/>
+          <Form.Control className="app-input" placeholder="Display Name (Optional)" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
+          <Form.Control className="app-input" type="file" onChange={e=>setSongFile(e.target.files[0])}/>
+          <div className="d-flex gap-3 mt-3">
+            <Button className="app-btn btn-secondary" onClick={uploadToIPFS} disabled={uploading}>
+              {uploading ? 'Uploading…' : 'Upload to IPFS'}
+            </Button>
+            <Button className="app-btn btn-primary" onClick={doUpload}>
+              Upload to Blockchain
+            </Button>
+          </div>
+          {ipfsCID && <p className="text-muted mt-2">CID: {ipfsCID}</p>}
+        </Form>
+      </div>
 
-    // Add contributor to the song revenue split
-    const handleAddContributor = () => {
-        if (!contributor || !split) return;
+      <div className="app-card">
+        <h3>Revenue Splits</h3>
+        <Row className="g-3 mb-3">
+          <Col><Form.Control className="app-input" placeholder="Contributor Address" value={contributor} onChange={e=>setContributor(e.target.value)}/></Col>
+          <Col><Form.Control className="app-input" placeholder="% Split" type="number" value={split} onChange={e=>setSplit(e.target.value)}/></Col>
+          <Col><Button className="app-btn btn-primary w-100" onClick={addSplit}>Add</Button></Col>
+        </Row>
+        <Table bordered hover responsive>
+          <thead><tr><th>Address</th><th>Split</th><th>Remove</th></tr></thead>
+          <tbody>
+            {contributors.map((c,i)=>(
+              <tr key={i}>
+                <td>{c.address}</td>
+                <td>{c.split}%</td>
+                <td><Button size="sm" className="app-btn btn-secondary" onClick={()=>removeSplit(i)}>×</Button></td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
 
-        setContributors(prev => [...prev, { address: contributor, split: parseInt(split) }]);
-        setContributor('');
-        setSplit('');
-    };
-
-    // Remove a contributor from the list
-    const handleRemoveContributor = (index) => {
-        const updated = [...contributors];
-        updated.splice(index, 1);
-        setContributors(updated);
-    };
-
-    // Upload song to IPFS
-    const uploadSongToIPFS = async () => {
-        if (!songFile) {
-            alert("Please select a song file first!");
-            return;
-        }
-
-        setUploadingToIPFS(true);  // Set loading state to true
-
-        try {
-            console.log("Uploading file to IPFS:", songFile.name);
-            const addedFile = await ipfs.add(songFile);
-            setIpfsCID(addedFile.path); // Store the CID from IPFS
-            alert(`Song uploaded successfully to IPFS! CID: ${addedFile.path}`);
-            console.log("File uploaded to IPFS. CID:", addedFile.path);
-        } catch (error) {
-            console.error("Error uploading file to IPFS:", error);
-            alert("Failed to upload song to IPFS.");
-        } finally {
-            setUploadingToIPFS(false);  // Set loading state back to false
-        }
-    };
-
-    // Handle song file change
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setSongFile(file);
-        }
-    };
-
-    // Upload song to the blockchain
-    const handleUpload = async () => {
-        if (!contract || !account || !web3) {
-            alert("Web3 is not connected.");
-            return;
-        }
-    
-        if (!ipfsCID) {
-            alert("Song must be uploaded to IPFS first!");
-            return;
-        }
-    
-        // Use title if displayName is empty
-        const finalDisplayName = displayName || 'Anonymous';
-    
-        // Combine title with display name
-        const finalTitle = `${title} - ${finalDisplayName}`;
-    
-        try {
-            const contributorAddresses = contributors.map(c => c.address);
-            const contributorSplits = contributors.map(c => c.split);
-    
-            const priceInWei = web3.utils.toWei(price, 'ether');
-    
-            // Upload the song to the blockchain with the combined title
-            await contract.methods.uploadSong(
-                finalTitle, // Use the combined title
-                priceInWei,
-                ipfsCID, // Use the CID from IPFS
-                contributorAddresses,
-                contributorSplits,
-                finalDisplayName // Include display name (defaults to title if not provided)
-            ).send({ from: account });
-    
-            alert("Song uploaded successfully to the blockchain!");
-            setTitle('');
-            setPrice('');
-            setContributors([]);
-            setIpfsCID('');
-            setSongFile(null);
-            setDisplayName(''); // Clear the display name field
-        } catch (error) {
-            console.error("Upload failed:", error);
-            alert("Upload failed. See console for details.");
-        }
-    };
-    
-
-    // Handle withdraw action
-    const handleWithdraw = async () => {
-        if (!contract || !account) {
-            alert("Web3 is not connected.");
-            return;
-        }
-
-        try {
-            await contract.methods.withdrawFunds().send({ from: account });
-            alert('Withdrawal successful');
-            fetchBalance(); // Update balance after withdrawal
-        } catch (error) {
-            console.error('Error withdrawing funds:', error);
-            alert('Failed to withdraw funds');
-        }
-    };
-
-    // Fetch the balance when the component is loaded
-    useEffect(() => {
-        fetchBalance();
-    }, [contract, account]);
-
-    return (
-        <Container>
-            <h1 className="my-4">Artist Dashboard</h1>
-
-            {/* Upload Song Section */}
-            <section>
-                <h2>Upload Your Music</h2>
-                <Form>
-                    <Form.Group controlId="songName">
-                        <Form.Label>Song Name</Form.Label>
-                        <Form.Control
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                        />
-                    </Form.Group>
-                    <Form.Group controlId="price">
-                        <Form.Label>Price Per Download (ETH)</Form.Label>
-                        <Form.Control
-                            type="number"
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                        />
-                    </Form.Group>
-
-                    {/* Optional Display Name */}
-                    <Form.Group controlId="displayName">
-                        <Form.Label>Display Name (Optional)</Form.Label>
-                        <Form.Control
-                            type="text"
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                        />
-                    </Form.Group>
-
-                    <Form.Group controlId="songFile">
-                        <Form.Label>Upload Song</Form.Label>
-                        <Form.Control
-                            type="file"
-                            onChange={handleFileChange}
-                        />
-                    </Form.Group>
-                    <Button variant="secondary" className="mt-3" onClick={uploadSongToIPFS}>
-                        Upload Song to IPFS
-                    </Button>
-                    {uploadingToIPFS && <p>Uploading file to IPFS...</p>}
-                    {ipfsCID && <p>File successfully uploaded to IPFS! CID: {ipfsCID}</p>}
-                </Form>
-                <Button variant="primary" className="mt-3" onClick={handleUpload}>
-                    Upload Song to Blockchain
-                </Button>
-            </section>
-
-            {/* Revenue Splits Section */}
-            <section className="mt-5">
-                <h2>Revenue Splits</h2>
-                <Row>
-                    <Col>
-                        <Form.Control
-                            type="text"
-                            placeholder="Contributor address"
-                            value={contributor}
-                            onChange={(e) => setContributor(e.target.value)}
-                        />
-                    </Col>
-                    <Col>
-                        <Form.Control
-                            type="number"
-                            placeholder="% split"
-                            value={split}
-                            onChange={(e) => setSplit(e.target.value)}
-                        />
-                    </Col>
-                    <Col>
-                        <Button onClick={handleAddContributor}>Add</Button>
-                    </Col>
-                </Row>
-
-                <Table striped bordered hover className="mt-3">
-                    <thead>
-                        <tr>
-                            <th>Address</th>
-                            <th>Split (%)</th>
-                            <th>Remove</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {contributors.map((c, i) => (
-                            <tr key={i}>
-                                <td>{c.address}</td>
-                                <td>{c.split}</td>
-                                <td>
-                                    <Button variant="danger" size="sm" onClick={() => handleRemoveContributor(i)}>
-                                        Remove
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            </section>
-
-            {/* Earnings Section */}
-            <section className="mt-5">
-                <h2>Earnings</h2>
-                <p>Current Balance: {balance} ETH</p>
-                <Button variant="success" onClick={handleWithdraw}>Withdraw Funds</Button>
-            </section>
-        </Container>
-    );
+      <div className="app-card">
+        <h3>Earnings</h3>
+        <p>Balance: {balance} ETH</p>
+        <Button className="app-btn btn-success w-100" onClick={withdraw}>Withdraw Funds</Button>
+      </div>
+    </Container>
+  );
 }
-
-export default ArtistDashboardPage;

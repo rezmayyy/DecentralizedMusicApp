@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Spinner, Alert } from 'react-bootstrap';
+import { Button, Card, Spinner, Alert, Container } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
+import '../theme.css'; // <-- global theme
 
 const SongDetailsPage = () => {
-    const { id } = useParams(); // get song ID from URL
+    const { id } = useParams();
     const navigate = useNavigate();
     const { contract, web3 } = useContext(Web3Context);
 
@@ -76,32 +77,33 @@ const SongDetailsPage = () => {
         document.body.removeChild(link);
     };
 
-    if (loading) return <Spinner animation="border" variant="primary" />;
-    if (error) return <Alert variant="danger">{error}</Alert>;
+    if (loading) return <div className="d-flex justify-content-center py-5"><Spinner animation="border" /></div>;
+    if (error) return <Alert variant="danger" className="m-4">{error}</Alert>;
 
     return (
-        <Card className="m-4 p-4 shadow">
-            <h2>{song.title}</h2>
-            <p><strong>Artist:</strong> {song.artist}</p>
-            <p><strong>Contributors:</strong> {song.contributors}</p>
-            <p><strong>Splits:</strong> {song.splits}</p>
-            <p><strong>Price:</strong> {song.price} ETH</p>
+        <Container className="homepage-container">
+            <Card className="app-card">
+                <h2>{song.title}</h2>
+                <p><strong>Artist:</strong> {song.artist}</p>
+                <p><strong>Contributors:</strong> {song.contributors}</p>
+                <p><strong>Splits:</strong> {song.splits}</p>
+                <p><strong>Price:</strong> {song.price} ETH</p>
 
-            {purchased ? (
-                <Button variant="success" onClick={() => navigate('/buyerdashboard')}>
-                    Download at Buyer Dashboard
+                {purchased ? (
+                    <Button variant="success" className="app-btn" onClick={() => navigate('/buyerdashboard')}>
+                        Download at Buyer Dashboard
+                    </Button>
+                ) : (
+                    <Button variant="primary" className="app-btn" onClick={handleBuy}>
+                        Buy Now
+                    </Button>
+                )}
+
+                <Button variant="link" className="mt-3" onClick={() => navigate(-1)} style={{ color: 'var(--accent)' }}>
+                    ← Back
                 </Button>
-            ) : (
-                <Button variant="primary" onClick={handleBuy}>
-                    Buy Now
-                </Button>
-            )}
-
-
-            <Button variant="link" className="mt-3" onClick={() => navigate(-1)}>
-                ← Back
-            </Button>
-        </Card>
+            </Card>
+        </Container>
     );
 };
 
