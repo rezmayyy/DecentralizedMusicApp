@@ -2,197 +2,96 @@ import React, { useState, useContext } from 'react';
 import { Form, Button, Table, Container, Row, Col, Spinner, Alert } from 'react-bootstrap';
 import { create as createIpfsClient } from 'ipfs-http-client';
 import { Web3Context } from '../components/Web3Context';
+import { create } from 'ipfs-http-client';
+import '../theme.css';
 
-// point at your local go-ipfs daemon
-const ipfs = createIpfsClient({ url: 'http://127.0.0.1:5001/api/v0' });
-
-function ArtistDashboardPage() {
-  const { web3, account, contract, error } = useContext(Web3Context);
-
-  const [title, setTitle] = useState('');
-  const [price, setPrice] = useState('');
-  const [file, setFile] = useState(null);
-  const [contributor, setContributor] = useState('');
-  const [split, setSplit] = useState('');
-  const [contributors, setContributors] = useState([]);
-
-  // Guard for Web3 connection
-  if (error) {
-    return (
-      <Container className="mt-4">
-        <Alert variant="danger">{error}</Alert>
-      </Container>
-    );
-  }
-  if (!web3 || !account || !contract) {
-    return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" /> Connecting to blockchain…
-      </Container>
-    );
-  }
-
-  const handleAddContributor = () => {
-    if (!contributor || !split) return;
-    setContributors(prev => [...prev, { address: contributor, split: parseInt(split, 10) }]);
-    setContributor('');
-    setSplit('');
+export default function ArtistDashboardPage(){
+  const { web3, account, contract } = useContext(Web3Context);
+  const [title,setTitle]=useState(''), [price,setPrice]=useState(''),
+        [contributor,setContributor]=useState(''), [split,setSplit]=useState(''),
+        [contributors,setContributors]=useState([]), [balance,setBalance]=useState(0),
+        [songFile,setSongFile]=useState(null), [ipfsCID,setIpfsCID]=useState(''),
+        [uploading,setUploading]=useState(false), [displayName,setDisplayName]=useState('');
+  const ipfs = create({ host:'localhost',port:'5001',protocol:'http' });
+  const fetchBalance = async()=>{
+    const bal = await contract.methods.balances(account).call();
+    setBalance(web3.utils.fromWei(bal,'ether'));
   };
+  useEffect(()=>{ if(contract&&account) fetchBalance(); },[contract,account]);
 
-  const handleRemoveContributor = index => {
-    setContributors(cs => cs.filter((_, i) => i !== index));
+  const uploadToIPFS=async()=>{
+    if(!songFile) return alert("Select a song!");
+    setUploading(true);
+    const added = await ipfs.add(songFile);
+    setIpfsCID(added.path);
+    alert(`IPFS CID: ${added.path}`);
+    setUploading(false);
   };
-
-  const handleUpload = async () => {
-    if (!file) {
-      alert('Please select an audio file to upload.');
-      return;
-    }
-
-    try {
-      // 1) Pin to your local IPFS daemon
-      const { path: ipfsHash } = await ipfs.add(file);
-
-      // 2) Prepare on-chain args
-      const addresses = contributors.map(c => c.address);
-      const splitsArr = contributors.map(c => c.split);
-      const priceInWei = web3.utils.toWei(price, 'ether');
-
-      // 3) Estimate gas for the transaction
-      const tx = contract.methods.uploadSong(title, priceInWei, ipfsHash, addresses, splitsArr);
-      const gas = await tx.estimateGas({ from: account });
-      const gasPrice = await web3.eth.getGasPrice();
-
-      // 4) Send transaction with explicit gas and gasPrice
-      await tx.send({ from: account, gas, gasPrice });
-
-      alert('Song uploaded successfully!');
-
-      // 5) Reset form
-      setTitle('');
-      setPrice('');
-      setFile(null);
-      setContributors([]);
-    } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Upload failed. See console for details.');
-    }
+  const doUpload=async()=>{
+    if(!ipfsCID) return alert("IPFS first!");
+    const finalTitle=`${title} - ${displayName||'Anonymous'}`;
+    const addrs=contributors.map(c=>c.address), splits=contributors.map(c=>c.split);
+    await contract.methods.uploadSong(finalTitle,web3.utils.toWei(price,'ether'),ipfsCID,addrs,splits).send({ from:account });
+    alert("Uploaded!");
+    setTitle('');setPrice('');setContributors([]);setIpfsCID('');setSongFile(null);setDisplayName('');
   };
+  const withdraw=async()=>{
+    await contract.methods.withdrawFunds().send({ from:account });
+    fetchBalance();
+    alert("Withdrawn!");
+  };
+  const addSplit=()=>{ if(contributor&&split){ setContributors([...contributors,{address:contributor,split:parseInt(split)}]); setContributor(''); setSplit(''); } };
+  const removeSplit=i=>setContributors(contributors.filter((_,idx)=>idx!==i));
 
   return (
-    <Container>
-      <h1 className="my-4">Artist Dashboard</h1>
+    <Container className="artist-dashboard-container">
+      <h2>🎨 Artist Dashboard</h2>
 
-      <section>
-        <h2>Upload Your Music</h2>
+      <div className="app-card">
+        <h3>Upload Your Music</h3>
         <Form>
-          <Form.Group controlId="songName">
-            <Form.Label>Song Name</Form.Label>
-            <Form.Control
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
-          </Form.Group>
-
-          <Form.Group controlId="price">
-            <Form.Label>Price Per Download (ETH)</Form.Label>
-            <Form.Control
-              type="number"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-            />
-          </Form.Group>
-
-          <Form.Group controlId="fileUpload">
-            <Form.Label>Audio File</Form.Label>
-            <Form.Control
-              type="file"
-              accept="audio/*"
-              onChange={e => setFile(e.target.files[0])}
-            />
-          </Form.Group>
-
-          <Button variant="primary" className="mt-3" onClick={handleUpload}>
-            Upload Song
-          </Button>
+          <Form.Control className="app-input" placeholder="Song Title" value={title} onChange={e=>setTitle(e.target.value)}/>
+          <Form.Control className="app-input" placeholder="Price (ETH)" type="number" value={price} onChange={e=>setPrice(e.target.value)}/>
+          <Form.Control className="app-input" placeholder="Display Name (Optional)" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
+          <Form.Control className="app-input" type="file" onChange={e=>setSongFile(e.target.files[0])}/>
+          <div className="d-flex gap-3 mt-3">
+            <Button className="app-btn btn-secondary" onClick={uploadToIPFS} disabled={uploading}>
+              {uploading ? 'Uploading…' : 'Upload to IPFS'}
+            </Button>
+            <Button className="app-btn btn-primary" onClick={doUpload}>
+              Upload to Blockchain
+            </Button>
+          </div>
+          {ipfsCID && <p className="text-muted mt-2">CID: {ipfsCID}</p>}
         </Form>
-      </section>
+      </div>
 
-      <section className="mt-5">
-        <h2>Revenue Splits</h2>
-        <Row>
-          <Col>
-            <Form.Control
-              type="text"
-              placeholder="Contributor address"
-              value={contributor}
-              onChange={e => setContributor(e.target.value)}
-            />
-          </Col>
-          <Col>
-            <Form.Control
-              type="number"
-              placeholder="% split"
-              value={split}
-              onChange={e => setSplit(e.target.value)}
-            />
-          </Col>
-          <Col>
-            <Button onClick={handleAddContributor}>Add</Button>
-          </Col>
+      <div className="app-card">
+        <h3>Revenue Splits</h3>
+        <Row className="g-3 mb-3">
+          <Col><Form.Control className="app-input" placeholder="Contributor Address" value={contributor} onChange={e=>setContributor(e.target.value)}/></Col>
+          <Col><Form.Control className="app-input" placeholder="% Split" type="number" value={split} onChange={e=>setSplit(e.target.value)}/></Col>
+          <Col><Button className="app-btn btn-primary w-100" onClick={addSplit}>Add</Button></Col>
         </Row>
-
-        <Table striped bordered hover className="mt-3">
-          <thead>
-            <tr>
-              <th>Address</th>
-              <th>Split (%)</th>
-              <th>Remove</th>
-            </tr>
-          </thead>
+        <Table bordered hover responsive>
+          <thead><tr><th>Address</th><th>Split</th><th>Remove</th></tr></thead>
           <tbody>
-            {contributors.map((c, i) => (
+            {contributors.map((c,i)=>(
               <tr key={i}>
                 <td>{c.address}</td>
-                <td>{c.split}</td>
-                <td>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleRemoveContributor(i)}
-                  >
-                    Remove
-                  </Button>
-                </td>
+                <td>{c.split}%</td>
+                <td><Button size="sm" className="app-btn btn-secondary" onClick={()=>removeSplit(i)}>×</Button></td>
               </tr>
             ))}
           </tbody>
         </Table>
-      </section>
+      </div>
 
-      <section className="mt-5">
-        <h2>Earnings & History</h2>
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Song</th>
-              <th>Earnings (ETH)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Placeholder—you can wire this up to on-chain events */}
-            <tr>
-              <td>2025-04-08</td>
-              <td>My Song</td>
-              <td>0.05</td>
-            </tr>
-          </tbody>
-        </Table>
-      </section>
+      <div className="app-card">
+        <h3>Earnings</h3>
+        <p>Balance: {balance} ETH</p>
+        <Button className="app-btn btn-success w-100" onClick={withdraw}>Withdraw Funds</Button>
+      </div>
     </Container>
   );
 }
-
-export default ArtistDashboardPage;

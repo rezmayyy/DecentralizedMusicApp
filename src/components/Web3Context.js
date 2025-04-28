@@ -27,13 +27,10 @@ export const Web3Provider = ({ children }) => {
         }
         setAccount(accts[0]);
 
-        // 3) Figure out network and deployed address
-        const networkId = await w3.eth.net.getId();
-        const deployed  = MyTunes.networks[networkId];
-        if (!deployed || !deployed.address) {
-          setError(`MyTunes not deployed on network ${networkId}`);
-          return;
-        }
+                    const contractABI = require('../contracts/MyTunes.json').abi;
+                    const contractAddress = "0xA39ee2B6e608A6D5358a0deB50C783674aF8fE2C";
+                    const deployedContract = new web3Instance.eth.Contract(contractABI, contractAddress);
+                    setContract(deployedContract);
 
         // 4) Instantiate contract
         const inst = new w3.eth.Contract(MyTunes.abi, deployed.address);

@@ -1,202 +1,128 @@
+// src/pages/BuyerDashboardPage.jsx
 import React, { useState, useEffect, useContext } from 'react';
-import { Container, Table, Button, Spinner, Alert } from 'react-bootstrap';
-import { create as createIpfsClient } from 'ipfs-http-client';
-import Web3 from 'web3';
+import { Button, Card, Table, Spinner, Alert, Container } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
+import { useNavigate } from 'react-router-dom';
+import '../theme.css';  // <-- ensure your new theme is loaded
 
-// point at your local go-ipfs daemon
-const ipfs = createIpfsClient({ url: 'http://127.0.0.1:5001/api/v0' });
+const BuyerDashboardPage = () => {
+    const { web3, contract } = useContext(Web3Context);
+    const [account, setAccount] = useState('');
+    const [purchasedSongs, setPurchasedSongs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-function BuyerDashboardPage() {
-  const { web3, account, contract, error } = useContext(Web3Context);
-  const [purchases, setPurchases] = useState([]);
-  const [txHistory, setTxHistory] = useState([]);
-  const [earnings, setEarnings] = useState('0');
+    const navigate = useNavigate();
 
-  // Data loading effect
-  useEffect(() => {
-    if (!web3 || !account || !contract) return;
-    const loadData = async () => {
-      try {
-        // fetch purchase events
-        const events = await contract.getPastEvents('SongPurchasedBy', {
-          filter: { buyer: account },
-          fromBlock: 0,
-          toBlock: 'latest'
-        });
+    useEffect(() => {
+        const init = async () => {
+            try {
+                if (!web3 || !contract) return;
 
-        // dedupe song IDs
-        const ids = Array.from(new Set(events.map(e => parseInt(e.returnValues.songId, 10))));
+                // Get the buyer's account
+                const accounts = await web3.eth.getAccounts();
+                setAccount(accounts[0]);
 
-        // load purchased songs
-        const bought = await Promise.all(
-          ids.map(async id => {
-            const { title, ipfsHash } = await contract.methods.getSongDetails(id).call();
-            return { id, title, ipfsHash };
-          })
-        );
-        setPurchases(bought);
+                // Fetch purchased songs for this account
+                const allSongs = await fetchPurchasedSongs(accounts[0]);
 
-        // build transaction history
-        const historyData = await Promise.all(
-          events.map(async evt => {
-            const songId = parseInt(evt.returnValues.songId, 10);
-            const block = await web3.eth.getBlock(evt.blockNumber);
-            const details = await contract.methods.getSongDetails(songId).call();
-            return {
-              date: new Date(block.timestamp * 1000).toLocaleDateString(),
-              title: details.title,
-              amount: Web3.utils.fromWei(details.price, 'ether')
-            };
-          })
-        );
-        setTxHistory(historyData);
+                setPurchasedSongs(allSongs);
+            } catch (err) {
+                console.error(err);
+                setError('Failed to load purchased songs.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        // fetch pending earnings
-        const bal = await contract.methods.balances(account).call();
-        setEarnings(Web3.utils.fromWei(bal, 'ether'));
-      } catch (err) {
-        console.error('Load data failed:', err);
-      }
+        init();
+    }, [web3, contract]);
+
+    // Fetch purchased songs by the account
+    const fetchPurchasedSongs = async (account) => {
+        const latestSongId = await contract.methods.nextSongId().call();
+        const songs = [];
+
+        for (let i = 1; i < latestSongId; i++) {
+            const purchased = await contract.methods.verifyPurchase(i, account).call();
+            if (purchased) {
+                const songDetails = await contract.methods.getSongDetails(i).call();
+                songs.push({
+                    id: i,
+                    title: songDetails[0],
+                    price: web3.utils.fromWei(songDetails[1], 'ether'),
+                    ipfsHash: songDetails[2],
+                    artist: songDetails[3],
+                });
+            }
+        }
+
+        return songs;
     };
 
-    loadData();
-  }, [contract, account, web3]);
+    const handleDownload = (ipfsHash, title) => {
+        if (!ipfsHash) {
+            alert('IPFS hash is missing for this song!');
+            return;
+        }
 
-  // Guard for Web3 connection
-  if (error) {
+        const url = `http://127.0.0.1:8080/ipfs/${ipfsHash}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title}.mp3`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (loading) return <div className="d-flex justify-content-center py-5"><Spinner animation="border" variant="primary" /></div>;
+    if (error) return <Alert variant="danger" className="m-4">{error}</Alert>;
+
     return (
-      <Container className="mt-4">
-        <Alert variant="danger">{error}</Alert>
-      </Container>
-    );
-  }
-  if (!web3 || !account || !contract) {
-    return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" /> Connecting to blockchain…
-      </Container>
-    );
-  }
+        <Container className="buyer-dashboard-container">
+            <h2 className="mb-4">Your Purchased Songs</h2>
 
-  const handleWithdraw = async () => {
-    try {
-      const tx = contract.methods.withdrawFunds();
-      const gas = await tx.estimateGas({ from: account });
-      const gasPrice = await web3.eth.getGasPrice();
-      await tx.send({ from: account, gas, gasPrice });
-      setEarnings('0');
-      alert('Withdraw successful!');
-    } catch (err) {
-      console.error('Withdrawal failed:', err);
-      alert('Withdrawal failed');
-    }
-  };
+            <Table striped bordered hover responsive className="app-card">
+                <thead>
+                    <tr>
+                        <th>Song ID</th>
+                        <th>Title</th>
+                        <th>Price (ETH)</th>
+                        <th>Artist</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {purchasedSongs.map((song) => (
+                        <tr key={song.id}>
+                            <td>{song.id}</td>
+                            <td>{song.title}</td>
+                            <td>{song.price}</td>
+                            <td>{song.artist}</td>
+                            <td>
+                                <Button
+                                    variant="success"
+                                    className="app-btn"
+                                    onClick={() => handleDownload(song.ipfsHash, song.title)}
+                                >
+                                    Download Song
+                                </Button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
 
-  const handleDownload = async (cid, filename) => {
-    try {
-      const chunks = [];
-      for await (const chunk of ipfs.cat(cid)) {
-        chunks.push(chunk);
-      }
-      const blob = new Blob(chunks);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('IPFS download failed:', err);
-      alert('Download failed');
-    }
-  };
-
-  return (
-    <Container>
-      <h1 className="my-4">Buyer Dashboard</h1>
-
-      <section>
-        <h2>Your Purchased Songs</h2>
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>Song Title</th>
-              <th>Download</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.length > 0 ? (
-              purchases.map((p, idx) => (
-                <tr key={idx}>
-                  <td>{p.title}</td>
-                  <td>
-                    <Button
-                      variant="link"
-                      onClick={() => handleDownload(p.ipfsHash, p.title)}
-                    >
-                      Download
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="2" className="text-center">
-                  You haven’t purchased any songs yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
-      </section>
-
-      <section className="mt-5">
-        <h2>Transaction History</h2>
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Song</th>
-              <th>Paid (ETH)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {txHistory.length > 0 ? (
-              txHistory.map((h, i) => (
-                <tr key={i}>
-                  <td>{h.date}</td>
-                  <td>{h.title}</td>
-                  <td>{h.amount}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="3" className="text-center">
-                  No transaction history found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
-      </section>
-
-      <section className="mt-5">
-        <h2>Your Earnings*</h2>
-        <p>
-          Pending balance: <b>{earnings} ETH</b>{' '}
-          {parseFloat(earnings) > 0 && (
-            <Button variant="outline-success" size="sm" onClick={handleWithdraw}>
-              Withdraw
+            <Button
+                variant="link"
+                className="mt-3"
+                onClick={() => navigate('/')}
+                style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}
+            >
+                ← Back to Home
             </Button>
-          )}
-        </p>
-        <small className="text-muted">*Producers only</small>
-      </section>
-    </Container>
-  );
-}
+        </Container>
+    );
+};
 
 export default BuyerDashboardPage;
