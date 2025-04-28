@@ -141,7 +141,7 @@ a:hover {
   justify-content: center;
   gap: 6px;
   height: 120px;
-  margin-top: 0.5rem !important;    /* moved up */
+  margin-top: 0.5rem !important;
   margin-bottom: 1.5rem !important;
 }
 .bar {
@@ -163,15 +163,15 @@ a:hover {
  10. How It Works Box Adjustments
 ────────────────────────────────────────────────────────────────────*/
 .welcome-how {
-  padding: 24px !important;       /* slightly smaller box */
+  padding: 24px !important;
   margin-bottom: 24px !important;
 }
 .welcome-how h3 {
-  font-size: 2rem !important;     /* bigger heading */
+  font-size: 2rem !important;
   margin-bottom: 0.75rem !important;
 }
 .welcome-how ol {
-  font-size: 1.2rem !important;    /* bigger steps text */
+  font-size: 1.2rem !important;
   line-height: 1.6 !important;
   margin-top: 0.5rem !important;
 }
@@ -183,4 +183,29 @@ img {
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+/*────────────────────────────────────────────────────────────────────
+ 12. Navbar Brand Styling 
+────────────────────────────────────────────────────────────────────*/
+.navbar-brand {
+  font-family: var(--font-cursive) !important;
+  color: var(--accent) !important;
+  font-size: 2rem !important;
+  line-height: 1;
+}
+.navbar-brand:hover {
+  opacity: 0.8 !important;
+}
+
+/*────────────────────────────────────────────────────────────────────
+ 13. Navbar Link Styling
+────────────────────────────────────────────────────────────────────*/
+.navbar-nav .nav-link {
+  font-size: 1.3rem !important;
+  margin-right: 1rem;
+  color: var(--text) !important;
+}
+.navbar-nav .nav-link:hover {
+  color: var(--accent) !important;
 }
