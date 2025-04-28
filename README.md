@@ -1,70 +1,105 @@
-# Getting Started with Create React App
+# MyTunes 🎶
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A decentralized music marketplace built on Ethereum and IPFS.  
+Artists can upload their tracks, set prices and revenue splits with collaborators. Buyers browse, purchase with ETH, and download instantly — no middlemen.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Quick Start
 
-### `npm start`
+### 1. Clone & Install
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+git clone https://github.com/your-username/DecentralizedMusicApp.git
+cd DecentralizedMusicApp
+npm install
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 2. Configure Environment
 
-### `npm test`
+Create a `.env` file in the project root:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```ini
+REACT_APP_CONTRACT_ADDRESS=0xYourDeployedContractAddress
+REACT_APP_IPFS_API_URL=http://localhost:5001
+```
 
-### `npm run build`
+Make sure your local blockchain (e.g. Ganache or Hardhat node) is running and your smart contract is deployed.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 3. Run Locally
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Opens at [http://localhost:3000](http://localhost:3000)  
+- Live-reloads on file changes  
+- Shows lint errors in console  
 
-### `npm run eject`
+### 4. Build for Production
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm run build
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Bundles React for production into `build/`  
+- Minifies code and hashes filenames for caching  
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## ⚙️ Available Scripts
 
-## Learn More
+- **`npm start`**  
+  Start the development server.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **`npm test`**  
+  Launch Jest in interactive watch mode.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **`npm run build`**  
+  Create an optimized production build.
 
-### Code Splitting
+- **`npm run eject`**  
+  **One-way** operation: expose all underlying configs (Webpack, Babel, ESLint, etc.).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+## 📂 Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+DecentralizedMusicApp/
+├─ public/                # Static assets & HTML template
+├─ src/
+│  ├─ components/         # Reusable UI components
+│  ├─ pages/              # Page-level React components
+│  ├─ contracts/          # Truffle/Hardhat-compiled ABI JSON
+│  ├─ theme.css           # Custom styling variables & overrides
+│  ├─ App.js              # Main router + layout
+│  └─ index.js            # Entry point
+├─ .env                   # Environment variables
+├─ package.json
+└─ README.md
+```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🔗 Connecting to Ethereum
 
-### Advanced Configuration
+We use **MetaMask** to interact with your local node or testnet:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+1. Click **Connect Wallet** in the top-right.  
+2. Approve the connection in MetaMask.  
+3. You’re ready to upload, purchase, and withdraw!
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 💡 Key Features
 
-### `npm run build` fails to minify
+- **Decentralized Storage** (IPFS): Tracks are fully censorship-resistant.  
+- **On-Chain Security**: Metadata & revenue logic live on Ethereum.  
+- **Instant Payments**: Buyers pay in ETH; artists withdraw anytime.  
+- **Revenue Splits**: Collaborators earn automatically according to your split rules.  
+- **User Dashboards**: Separate interfaces for artists and buyers.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+> Elevate your music. Empower your fans.  
