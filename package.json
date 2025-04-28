@@ -9,9 +9,9 @@
     "@testing-library/user-event": "^13.5.0",
     "animate.css": "^4.1.1",
     "bootstrap": "^5.3.5",
-    "ipfs-core": "^0.18.1",
+    "form-data": "^4.0.2",
     "ipfs-http-client": "^60.0.1",
-    "orbit-db": "^0.29.0",
+    "node-fetch": "^3.3.2",
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.9",
     "react-dom": "^19.1.0",
@@ -26,9 +26,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "ipfs:init": "cd kubo && ipfs.exe init",
-    "ipfs:daemon": "cd kubo && ipfs.exe daemon"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -47,8 +45,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "go-ipfs-dep": "^0.7.0"
   }
 }

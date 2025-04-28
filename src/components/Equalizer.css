@@ -1,27 +1,26 @@
 /* src/components/Equalizer.css */
 /* Imported in Equalizer.jsx */
 .eq-container {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 6px;
-    height: 120px;
-    margin: 2rem auto;
-  }
-  
-  .bar {
-    width: 12px;
-    background: var(--accent);
-    animation: bounce 0.8s infinite ease-in-out;
-  }
-  .bar1 { animation-delay: -0.4s; height: 20%; }
-  .bar2 { animation-delay: -0.2s; height: 40%; }
-  .bar3 { animation-delay: 0s;    height: 60%; }
-  .bar4 { animation-delay: -0.2s; height: 40%; }
-  .bar5 { animation-delay: -0.4s; height: 20%; }
-  
-  @keyframes bounce {
-    0%, 100% { transform: scaleY(0.4); }
-    50%      { transform: scaleY(1.0); }
-  }
-  
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 120px;
+  margin: 2rem auto;
+}
+
+.bar {
+  width: 12px;
+  background: var(--accent);
+  animation: bounce 0.8s infinite ease-in-out;
+}
+.bar1 { animation-delay: -0.4s; height: 20%; }
+.bar2 { animation-delay: -0.2s; height: 40%; }
+.bar3 { animation-delay: 0s;    height: 60%; }
+.bar4 { animation-delay: -0.2s; height: 40%; }
+.bar5 { animation-delay: -0.4s; height: 20%; }
+
+@keyframes bounce {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1.0); }
+}

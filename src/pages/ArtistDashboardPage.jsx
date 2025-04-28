@@ -1,6 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { Form, Button, Table, Container, Row, Col, Spinner, Alert } from 'react-bootstrap';
-import { create as createIpfsClient } from 'ipfs-http-client';
+import React, { useState, useContext, useEffect } from 'react';
+import { Form, Button, Table, Container, Row, Col } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
 import { create } from 'ipfs-http-client';
 import '../theme.css';
