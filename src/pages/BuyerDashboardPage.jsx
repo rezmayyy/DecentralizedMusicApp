@@ -1,6 +1,6 @@
 // src/pages/BuyerDashboardPage.jsx
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Card, Table, Spinner, Alert, Container } from 'react-bootstrap';
+import { Button, Table, Spinner, Alert, Container } from 'react-bootstrap';
 import { Web3Context } from '../components/Web3Context';
 import { useNavigate } from 'react-router-dom';
 import '../theme.css';  // <-- ensure your new theme is loaded
@@ -11,8 +11,22 @@ const BuyerDashboardPage = () => {
     const [purchasedSongs, setPurchasedSongs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [dateBought, setDateBought] = useState({});
 
     const navigate = useNavigate();
+
+    const formatDate = (ts) => {
+        const secs = Number(ts);
+        const d    = new Date(secs * 1000);
+        const mm   = d.getMonth() + 1;
+        const dd   = d.getDate();
+        const yyyy = d.getFullYear();
+        let   hh   = d.getHours();
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hh >= 12 ? 'pm' : 'am';
+        hh = hh % 12 || 12;
+        return `${mm}/${dd}/${yyyy} ${hh}:${mins}${ampm}`;
+    };
 
     useEffect(() => {
         const init = async () => {
@@ -21,12 +35,31 @@ const BuyerDashboardPage = () => {
 
                 // Get the buyer's account
                 const accounts = await web3.eth.getAccounts();
-                setAccount(accounts[0]);
+                const buyer = accounts[0];
+                setAccount(buyer);
 
                 // Fetch purchased songs for this account
-                const allSongs = await fetchPurchasedSongs(accounts[0]);
-
+                const allSongs = await fetchPurchasedSongs(buyer);
                 setPurchasedSongs(allSongs);
+
+                const topic0 = web3.utils.sha3('SongPurchasedBy(uint256,address)');
+                const topicBuyer = web3.eth.abi.encodeParameter('address', buyer);
+
+                const logs = await web3.eth.getPastLogs({
+                    address: contract.options.address,
+                    fromBlock: 0,
+                    toBlock:'latest',
+                    topics: [topic0, null, topicBuyer]
+                });
+
+                const map = {};
+                for (let log of logs) {
+                    const songId = web3.eth.abi.decodeParameter('uint256', log.topics[1]);
+                    const id = Number(songId);
+                    const block = await web3.eth.getBlock(Number(log.blockNumber));
+                    map[id] = formatDate(block.timestamp);
+                }
+                setDateBought(map);
             } catch (err) {
                 console.error(err);
                 setError('Failed to load purchased songs.');
@@ -46,13 +79,13 @@ const BuyerDashboardPage = () => {
         for (let i = 1; i < latestSongId; i++) {
             const purchased = await contract.methods.verifyPurchase(i, account).call();
             if (purchased) {
-                const songDetails = await contract.methods.getSongDetails(i).call();
+                const details = await contract.methods.getSongDetails(i).call();
                 songs.push({
                     id: i,
-                    title: songDetails[0],
-                    price: web3.utils.fromWei(songDetails[1], 'ether'),
-                    ipfsHash: songDetails[2],
-                    artist: songDetails[3],
+                    title: details[0],
+                    price: web3.utils.fromWei(details[1], 'ether'),
+                    ipfsHash: details[2],
+                    artist: details[3],
                 });
             }
         }
@@ -89,6 +122,7 @@ const BuyerDashboardPage = () => {
                         <th>Title</th>
                         <th>Price (ETH)</th>
                         <th>Artist</th>
+                        <th>Date Bought</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -99,6 +133,7 @@ const BuyerDashboardPage = () => {
                             <td>{song.title}</td>
                             <td>{song.price}</td>
                             <td>{song.artist}</td>
+                            <td>{dateBought[song.id] || '—'}</td>
                             <td>
                                 <Button
                                     variant="success"

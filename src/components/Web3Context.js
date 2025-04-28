@@ -19,7 +19,7 @@ export const Web3Provider = ({ children }) => {
                     setAccount(accounts[0]);
 
                     const contractABI = require('../contracts/MyTunes.json').abi;
-                    const contractAddress = "0xA39ee2B6e608A6D5358a0deB50C783674aF8fE2C";
+                    const contractAddress = "0x7798652d00Db945C38b22a6796503C8C13b3DB79";
                     const deployedContract = new web3Instance.eth.Contract(contractABI, contractAddress);
                     setContract(deployedContract);
 
